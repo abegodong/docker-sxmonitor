@@ -10,8 +10,10 @@ RUN yum clean all && \
 RUN yum -y install supervisor \
     gcc make automake autoconf \
     python-pip python-devel \
-	nginx php-fpm ssmtp \
-	nagios nagios-plugins-ping
+	nginx php-fpm ssmtp 
+
+# temp fix for https://github.com/docker/hub-feedback/issues/461
+RUN yum -y install nagios nagios-plugins-ping || true
 
 RUN yum -y install git fcgi-devel && \
 	cd /usr/local/src/ && \ 

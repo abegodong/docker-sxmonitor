@@ -7,12 +7,13 @@ RUN yum clean all && \
     yum -y install epel-release && \
     yum clean all;
 
-RUN yum -y install supervisor gcc python-pip python-devel \
-	nginx php-fpm httpd-tools ssmtp \
+RUN yum -y install supervisor \
+    gcc make automake autoconf \
+    python-pip python-devel \
+	nginx php-fpm ssmtp \
 	nagios nagios-plugins-ping
 
-RUN yum -y groupinstall 'Development Tools' && \
-	yum -y install git fcgi-devel && \
+RUN yum -y install git fcgi-devel && \
 	cd /usr/local/src/ && \ 
 	git clone git://github.com/gnosek/fcgiwrap.git && \ 
 	cd fcgiwrap && \

@@ -58,7 +58,7 @@ Access to nagios is protected with basic auth.
 Create an account for yourself with:
 
 ```bash
-docker exec -t -i  sxmonitor su sxmonitor -c "/usr/bin/htpasswd -c /data/htpasswd nagiosadmin"
+/usr/bin/htpasswd -c /data/sxmonitor/htpasswd nagiosadmin
 ```
 
 ## Upgrades

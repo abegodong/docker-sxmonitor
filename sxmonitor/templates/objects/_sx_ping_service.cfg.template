@@ -1,0 +1,6 @@
+define service{{
+	use	sx-service
+	host_name	{node_address}
+	service_description	Ping node {node_address}
+	check_command	check_sx_ping!{node_address}
+	}}

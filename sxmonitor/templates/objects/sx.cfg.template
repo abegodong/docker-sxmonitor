@@ -1,0 +1,90 @@
+# COMMANDS
+
+define command{{
+	command_name	check_sx_ping
+	command_line	$USER1$/check_sx_ping.py -H $HOSTGROUPNAME$ -n $ARG1$ -k $USER3$ {port_switch} {ssl_verf_switch}
+	}}
+
+define command{{
+	command_name	check_sx_cluster_usage
+	command_line	$USER1$/check_sx_cluster_usage.py -H $HOSTGROUPNAME$ -k $USER3$ -w $ARG1$ -c $ARG2$ {port_switch} {ssl_verf_switch}
+	}}
+
+define command{{
+	command_name	check_sx_status
+	command_line	$USER1$/check_sx_status.py -H $HOSTGROUPNAME$ -k $USER3$ -w $ARG1$ -c $ARG2$ {port_switch} {ssl_verf_switch}
+	}}
+
+define command{{
+	command_name	check_sx_upload
+	command_line	$USER1$/check_sx_upload.py -H $HOSTGROUPNAME$ -k $USER3$ -w $ARG1$ -c $ARG2$ --remote-path $ARG3$ {port_switch} {ssl_verf_switch}
+	}}
+
+define command{{
+	command_name	check_sx_vol_usage
+	command_line	$USER1$/check_sx_vol_usage.py -H $HOSTGROUPNAME$ -k $USER3$ -w $ARG1$ -c $ARG2$ --vols $ARG3$ {port_switch} {ssl_verf_switch}
+	}}
+
+
+# TEMPLATES
+
+define service{{
+	use	generic-service
+	name	sx-service
+	normal_check_interval	5
+	retry_check_interval	1
+	register	0
+	}}
+
+define host{{
+	use	linux-server
+	name	sx-node
+	check_command	check-host-alive
+	notification_period	24x7
+	register	0
+	}}
+
+
+# HOSTGROUPS
+
+define hostgroup{{
+	hostgroup_name	{host_address}
+	alias	Cluster {host_address}
+	}}
+
+
+# HOSTS
+
+{node_hosts}
+
+# SERVICES
+
+define service{{
+	use	sx-service
+	hostgroup_name	{host_address}
+	service_description	Cluster usage
+	check_command	check_sx_cluster_usage!70!90
+	}}
+
+define service{{
+	use	sx-service
+	hostgroup_name	{host_address}
+	service_description	Cluster status
+	check_command	check_sx_status!0!0
+	}}
+
+define service{{
+	use	sx-service
+	hostgroup_name	{host_address}
+	service_description	Test file upload to sxmonitor volume
+	check_command	check_sx_upload!5!7!sxmonitor/nagios-test-file
+	}}
+
+define service{{
+	use	sx-service
+	hostgroup_name	{host_address}
+	service_description	Volume usages
+	check_command	check_sx_vol_usage!70!90!ALL
+	}}
+
+{node_services}

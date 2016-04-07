@@ -44,7 +44,8 @@ if ! [ -d "$NAGIOS_SX_CFG" ] || ! [ -r "$SSMTP_CONF" ]; then
 		fi
 		/srv/sxmonitor/generate_nagios_config.py --host-address $CLUSTER_NAME --port $CLUSTER_PORT --key-path $ADMIN_KEY_PATH --notify-address admin-ng@skylable.com $NAGIOS_SX_CFG
 		cp /etc/ssmtp/ssmtp.conf $SSMTP_CONF
-		sed -i 's/^mailhub=.*$/mailhub=$SMTP_ADDRESS/' $SSMTP_CONF
+		sed -i "s/^mailhub=.*$/mailhub=$SMTP_ADDRESS/" $SSMTP_CONF
+		sed -i "s/^#RewriteDomain=.*$/RewriteDomain=$SMTP_ADDRESS/" $SSMTP_CONF
 		# fix relative path to nagios cgi-bin
 		sed -i 's#url_html_path=.*$#url_html_path=/#' $NAGIOS_SX_CFG/cgi.cfg
 	fi

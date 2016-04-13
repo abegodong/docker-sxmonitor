@@ -22,10 +22,10 @@ monitor and read+write access to the 'sxmonitor' volume.
 ```bash
 $ sxacl useradd sxmonitor sx://admin@clustername
 $ sxvol create -r 3 -s 1G -o sxmonitor sx://admin@clustername/sxmonitor
-$ sxacl volperm --grant=read sx://admin@clustername/vol1
-$ sxacl volperm --grant=read sx://admin@clustername/vol2
+$ sxacl volperm --grant=read sxmonitor sx://admin@clustername/vol1
+$ sxacl volperm --grant=read sxmonitor sx://admin@clustername/vol2
 ...
-$ sxacl volperm --grant=read sx://admin@clustername/volN
+$ sxacl volperm --grant=read sxmonitor sx://admin@clustername/volN
 ```
 
 Obtain the key for this user:

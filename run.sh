@@ -42,7 +42,7 @@ if ! [ -d "$NAGIOS_SX_CFG" ] || ! [ -r "$SSMTP_CONF" ]; then
 		if [ -z "$CLUSTER_PORT" ]; then
 			CLUSTER_PORT=443
 		fi
-		/srv/sxmonitor/generate_nagios_config.py --host-address $CLUSTER_NAME --port $CLUSTER_PORT --key-path $ADMIN_KEY_PATH --notify-address admin-ng@skylable.com $NAGIOS_SX_CFG
+		/srv/sxmonitor/generate_nagios_config.py --host-address $CLUSTER_NAME --port $CLUSTER_PORT --key-path $ADMIN_KEY_PATH --notify-address $NOTIFY_EMAIL $NAGIOS_SX_CFG
 		cp /etc/ssmtp/ssmtp.conf $SSMTP_CONF
 		sed -i "s/^mailhub=.*$/mailhub=$SMTP_ADDRESS/" $SSMTP_CONF
 		sed -i "s/^#RewriteDomain=.*$/RewriteDomain=$SMTP_ADDRESS/" $SSMTP_CONF

@@ -28,9 +28,11 @@ $USER1$=/usr/lib64/nagios/plugins
 #$USER2$=/usr/lib64/nagios/plugins/eventhandlers
 
 # Sets $USER3$ to be the path to SX Cluster admin key
-$USER3$={sx_key_path}
+$USER3$={{sx_key_path}}
 
 # Store some usernames and passwords (hidden from the CGIs)
 #$USER3$=someuser
 #$USER4$=somepassword
 
+# Sets $USER5$ to be the timeout for SX services
+$USER5$=21

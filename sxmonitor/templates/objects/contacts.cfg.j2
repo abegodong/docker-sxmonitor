@@ -26,13 +26,13 @@
 # This contact definition inherits a lot of default values from the 'generic-contact' 
 # template which is defined elsewhere.
 
-define contact{{
+define contact{
         contact_name                    nagiosadmin		; Short name of user
 	use				generic-contact		; Inherit default values from generic-contact template (defined above)
         alias                           Nagios Admin		; Full name of user
 
-        email                           {notify_address}	; User's email address
-        }}
+        email                           {{notify_address}}	; User's email address
+        }
 
 
 
@@ -47,8 +47,8 @@ define contact{{
 # We only have one contact in this simple configuration file, so there is
 # no need to create more than one contact group.
 
-define contactgroup{{
+define contactgroup{
         contactgroup_name       admins
         alias                   Nagios Administrators
         members                 nagiosadmin
-        }}
+        }

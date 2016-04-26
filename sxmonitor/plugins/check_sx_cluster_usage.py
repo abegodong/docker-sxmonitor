@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Nagios plugin to check SX Cluster space usage."""
+"""Nagios plugin to check SX Cluster virtual space usage."""
 
 import argparse
 import logging
@@ -23,7 +23,7 @@ import nagiosplugin
 import sxclient
 
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 
 _log = logging.getLogger('nagiosplugin')
 
@@ -32,29 +32,26 @@ class ClusterUsage(nagiosplugin.Resource):
 
     def __init__(
             self, cluster_name, key_path, cluster_address=None, is_secure=True,
-            verify_ssl=True, port=None
+            verify_ssl=True, port=None,
+            timeout=sxclient.controller.DEFAULT_REQUEST_TIMEOUT
     ):
         cluster = sxclient.Cluster(
             cluster_name, cluster_address, is_secure=is_secure,
             verify_ssl_cert=verify_ssl, port=port
         )
         user_data = sxclient.UserData.from_key_path(key_path)
-        self.sx = sxclient.SXController(cluster, user_data)
+        self.sx = sxclient.SXController(
+            cluster, user_data, request_timeout=timeout
+        )
 
     def probe(self):
         node_info = self.get_node_info()
 
         virtual_usage = self.calculate_virtual_usage(node_info)
-        filesystem_usages = self.calculate_filesystem_usages(node_info)
 
         yield nagiosplugin.Metric(
             'Virtual usage', virtual_usage, uom='%', context='usage'
         )
-        for node, usage in filesystem_usages.iteritems():
-            yield nagiosplugin.Metric(
-                'Node %s filesystem usage' % node, usage, uom='%',
-                context='usage'
-            )
 
     def get_node_info(self):
         _log.debug('Getting node list from the cluster')
@@ -75,8 +72,6 @@ class ClusterUsage(nagiosplugin.Resource):
                 self._raise_connection_error(exc, msg)
 
             node_info[data['address']] = dict(
-                fsAvailBlocks=data['fsAvailBlocks'],
-                fsTotalBlocks=data['fsTotalBlocks'],
                 storageAllocated=data['storageAllocated'],
                 capacity=capacities[data['address']]
             )
@@ -125,29 +120,6 @@ class ClusterUsage(nagiosplugin.Resource):
             virtual_usage = 0
         return virtual_usage
 
-    def calculate_filesystem_usages(self, node_info):
-        usages = dict()
-
-        for node, data in node_info.iteritems():
-            available_blocks = data['fsAvailBlocks']
-            total_blocks = data['fsTotalBlocks']
-            _log.debug(
-                'Total blocks on node\'s %s filesystem: %i' %
-                (node, total_blocks)
-            )
-            used_blocks = total_blocks - available_blocks
-            _log.debug(
-                'Used blocks on node\'s %s filesystem: %i' %
-                (node, used_blocks)
-            )
-
-            try:
-                usages[node] = float(used_blocks) / total_blocks * 100
-            except ZeroDivisionError:
-                usages[node] = 0
-
-        return usages
-
 
 class ConnectionError(Exception):
     '''
@@ -162,7 +134,7 @@ def main():
     check = nagiosplugin.Check(
         ClusterUsage(
             args.hostname, args.key_path, args.ip_addresses, args.is_secure,
-            args.verify, args.port
+            args.verify, args.port, timeout=args.timeout
         ),
         nagiosplugin.ScalarContext('usage', args.warning, args.critical)
     )

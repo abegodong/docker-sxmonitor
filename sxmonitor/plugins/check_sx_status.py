@@ -23,7 +23,7 @@ import nagiosplugin
 import sxclient
 
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 
 _log = logging.getLogger('nagiosplugin')
 
@@ -32,14 +32,17 @@ class DeadNodes(nagiosplugin.Resource):
 
     def __init__(
             self, cluster_name, key_path, cluster_address=None, is_secure=True,
-            verify_ssl=True, port=None
+            verify_ssl=True, port=None,
+            timeout=sxclient.controller.DEFAULT_REQUEST_TIMEOUT
     ):
         cluster = sxclient.Cluster(
             cluster_name, cluster_address, is_secure=is_secure,
             verify_ssl_cert=verify_ssl, port=port
         )
         user_data = sxclient.UserData.from_key_path(key_path)
-        self.sx = sxclient.SXController(cluster, user_data)
+        self.sx = sxclient.SXController(
+            cluster, user_data, request_timeout=timeout
+        )
 
     def probe(self):
         try:
@@ -148,7 +151,7 @@ def main():
     check = nagiosplugin.Check(
         DeadNodes(
             args.hostname, args.key_path, args.ip_addresses, args.is_secure,
-            args.verify, args.port
+            args.verify, args.port, timeout=args.timeout
         ),
         nagiosplugin.ScalarContext(
             'number of dead nodes', args.warning, args.critical

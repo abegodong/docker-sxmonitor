@@ -10,6 +10,7 @@ import os
 import shutil
 import sys
 
+import jinja2
 import sxclient
 
 
@@ -21,9 +22,10 @@ DIRECTORIES = [
     'private'
 ]
 
-ORDINARY_TEMPLATES = [
-    'objects/contacts.cfg.template',
-    'private/resource.cfg.template'
+TEMPLATES = [
+    'objects/sx.cfg.j2',
+    'objects/contacts.cfg.j2',
+    'private/resource.cfg.j2'
 ]
 
 STATICS = [
@@ -43,8 +45,6 @@ class ConfigGenerator(object):
 
     def __init__(self, fields, output_dir, verify_ssl=True, port=None):
         self.fields = fields
-        self.verify_ssl = verify_ssl
-        self.port = port
 
         curdir = os.getcwd()
         abs_output_dir = os.path.join(curdir, output_dir)
@@ -56,7 +56,6 @@ class ConfigGenerator(object):
         self.create_directories()
         self.copy_static_files()
         self.generate_from_templates()
-        self.generate_sx_cfg()
         self.set_permissions()
 
     def create_directories(self):
@@ -77,65 +76,18 @@ class ConfigGenerator(object):
             shutil.copy2(source, destination)
 
     def generate_from_templates(self):
-        for template_name in ORDINARY_TEMPLATES:
+        env = jinja2.Environment(loader=jinja2.FileSystemLoader(TEMPLATE_DIR))
+
+        for template_name in TEMPLATES:
             source = os.path.join(TEMPLATE_DIR, template_name)
-            destination_name = template_name.replace('.template', '')
+            destination_name = template_name.replace('.j2', '')
             destination = os.path.join(self.output_dir, destination_name)
-            with open(source, 'r') as fi, open(destination, 'w') as fo:
-                template = fi.read()
-                config = template.format(**self.fields)
+
+            template = env.get_template(template_name)
+            config = template.render(**self.fields)
+            with open(destination, 'w') as fo:
                 fo.write(config)
             shutil.copystat(source, destination)
-
-        self.generate_sx_cfg()
-
-    def generate_sx_cfg(self):
-        nodelist = get_node_list(
-            fields['host_address'], fields['sx_key_path'],
-            verify_ssl=self.verify_ssl, port=self.port
-        )
-
-        node_template_source = os.path.join(
-            TEMPLATE_DIR, 'objects/_sx_node_hosts.cfg.template'
-        )
-        ping_template_source = os.path.join(
-            TEMPLATE_DIR, 'objects/_sx_ping_service.cfg.template'
-        )
-        template_source = os.path.join(
-            TEMPLATE_DIR, 'objects/sx.cfg.template'
-        )
-
-        destination = os.path.join(
-            self.output_dir, 'objects/sx.cfg'
-        )
-
-        with open(ping_template_source, 'r') as fi:
-            ping_template = fi.read()
-        with open(node_template_source, 'r') as fi:
-            node_template = fi.read()
-        with open(template_source, 'r') as fi:
-            template = fi.read()
-
-        node_configs = []
-        ping_configs = []
-        for ip in nodelist:
-            tmp_fields = {'node_address': ip}
-            tmp_fields.update(fields)
-            conf = node_template.format(**tmp_fields)
-            node_configs.append(conf)
-            conf = ping_template.format(**tmp_fields)
-            ping_configs.append(conf)
-        node_config = '\n'.join(node_configs)
-        ping_config = '\n'.join(ping_configs)
-
-        sx_fields = {'node_hosts': node_config, 'node_services': ping_config}
-        sx_fields.update(fields)
-        config = template.format(**sx_fields)
-
-        with open(destination, 'w') as fo:
-            fo.write(config)
-
-        shutil.copystat(template_source, destination)
 
     def set_permissions(self):
         permissions = {
@@ -154,6 +106,23 @@ class ConfigGenerator(object):
                 path = os.path.join(dir, fl)
                 perms = permissions.get(path, 0o644)
                 os.chmod(path, perms)
+
+
+def prepare_fields(args):
+    nodelist = get_node_list(
+        args.host_address, args.key_path,
+        verify_ssl=args.verify_ssl, port=args.port
+    )
+    nodelist.sort()
+    fields = {
+        'host_address': args.host_address,
+        'node_addresses': nodelist,
+        'sx_key_path': args.key_path,
+        'notify_address': args.notify_address,
+        'ssl_verf_switch': '--no-verify' if args.verify_ssl is False else '',
+        'port_switch': '--port %i' % args.port if args.port else ''
+    }
+    return fields
 
 
 def get_node_list(host_address, key_path, verify_ssl=True, port=None):
@@ -203,13 +172,7 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
-    fields = {
-        'host_address': args.host_address,
-        'sx_key_path': args.key_path,
-        'notify_address': args.notify_address,
-        'ssl_verf_switch': '--no-verify' if args.verify_ssl is False else '',
-        'port_switch': '--port %i' % args.port if args.port else ''
-    }
+    fields = prepare_fields(args)
     generator = ConfigGenerator(
         fields, args.output_dir, args.verify_ssl, args.port
     )

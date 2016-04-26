@@ -1,7 +1,0 @@
-define host{{
-	use	sx-node
-	host_name	{node_address}
-	alias	Node {node_address}
-	address	{node_address}
-	hostgroups	{host_address}
-	}}

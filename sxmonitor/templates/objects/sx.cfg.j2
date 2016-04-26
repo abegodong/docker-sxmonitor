@@ -1,0 +1,140 @@
+# COMMANDS
+
+## NODE COMMANDS
+
+define command{
+	command_name	check_sx_ping
+	command_line	$USER1$/check_sx_ping.py -H $HOSTGROUPNAME$ -n $HOSTADDRESS$ {{port_switch}} {{ssl_verf_switch}} --timeout $USER5$
+	}
+
+define command{
+	command_name	check_sx_node_usage
+	command_line	$USER1$/check_sx_node_usage.py -H $HOSTGROUPNAME$ -n $ARG1$ -k $USER3$ -w $ARG2$ -c $ARG3$ {{port_switch}} {{ssl_verf_switch}} --timeout $USER5$
+	}
+
+## CLUSTER COMMANDS
+
+define command{
+	command_name	check_sx_cluster_usage
+	command_line	$USER1$/check_sx_cluster_usage.py -H $HOSTNAME$ -k $USER3$ -w $ARG1$ -c $ARG2$ {{port_switch}} {{ssl_verf_switch}} --timeout $USER5$
+	}
+
+define command{
+	command_name	check_sx_status
+	command_line	$USER1$/check_sx_status.py -H $HOSTNAME$ -k $USER3$ -w $ARG1$ -c $ARG2$ {{port_switch}} {{ssl_verf_switch}} --timeout $USER5$
+	}
+
+define command{
+	command_name	check_sx_upload
+	command_line	$USER1$/check_sx_upload.py -H $HOSTNAME$ -k $USER3$ -w $ARG1$ -c $ARG2$ --remote-path $ARG3$ {{port_switch}} {{ssl_verf_switch}} --timeout $USER5$
+	}
+
+define command{
+	command_name	check_sx_vol_usage
+	command_line	$USER1$/check_sx_vol_usage.py -H $HOSTNAME$ -k $USER3$ -w $ARG1$ -c $ARG2$ --vols $ARG3$ {{port_switch}} {{ssl_verf_switch}} --timeout $USER5$
+	}
+
+
+# TEMPLATES
+
+define service{
+	use	generic-service
+	name	sx-service
+	normal_check_interval	5
+	retry_check_interval	1
+	max_check_attempts	5
+	register	0
+	}
+
+define host{
+	use	linux-server
+	name	sx-node
+	check_command	check_sx_ping
+	check_interval	2
+	retry_interval	1
+	max_check_attempts	2
+	notification_period	24x7
+	register	0
+	}
+
+
+# HOSTGROUPS
+
+define hostgroup{
+	hostgroup_name	{{host_address}}
+	alias	Cluster {{host_address}}
+	}
+
+
+# HOSTS
+
+define host{
+	use	linux-server
+	host_name {{host_address}}
+	alias	Cluster {{host_address}}
+	address	{{host_address}}
+
+	check_command	check-dummy!0 "OK | dummycheck=0"
+	notification_period	24x7
+	}
+
+{% for node_address in node_addresses %}
+define host{
+	use	sx-node
+	host_name	{{node_address}}
+	alias	Node {{node_address}}
+	address	{{node_address}}
+	hostgroups	{{host_address}}
+	}
+{% endfor %}
+
+# SERVICES
+
+## CLUSTER SERVICES
+
+define service{
+	use	sx-service
+	host_name	{{host_address}}
+	service_description	Cluster usage
+	check_command	check_sx_cluster_usage!70!90
+	}
+
+define service{
+	use	sx-service
+	host_name	{{host_address}}
+	service_description	Cluster status
+	check_command	check_sx_status!0!0
+	}
+
+define service{
+	use	sx-service
+	host_name	{{host_address}}
+	service_description	Test file upload to sxmonitor volume
+	check_command	check_sx_upload!5!7!sxmonitor/nagios-test-file
+	}
+
+define service{
+	use	sx-service
+	host_name	{{host_address}}
+	service_description	Volume usages
+	check_command	check_sx_vol_usage!70!90!ALL
+	}
+
+
+## NODE SERVICES
+{% for node_address in node_addresses %}
+define service{
+	use	sx-service
+	host_name	{{node_address}}
+	service_description	Node {{node_address}} usage
+	check_command	check_sx_node_usage!{{node_address}}!70!90
+	}
+{% endfor %}
+
+# DEPENDENCIES
+
+define hostdependency{
+        host_name       {{ node_addresses|join(",") }}
+        dependent_host_name     {{host_address}}
+        notification_failure_criteria   d,u
+}

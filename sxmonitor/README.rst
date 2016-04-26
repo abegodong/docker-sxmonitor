@@ -16,7 +16,7 @@ Requirements
 In order to work, plugins require Python 2.7 and the following Python packages:
 
 - nagiosplugin >= 1.2.3
-- sxclient >= 0.11.1
+- sxclient >= 0.16.4
 
 To install the required packages, run::
 

@@ -26,7 +26,7 @@ import nagiosplugin
 import sxclient
 
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 
 _log = logging.getLogger('nagiosplugin')
 
@@ -43,14 +43,17 @@ class UploadLatency(nagiosplugin.Resource):
 
     def __init__(
             self, remote_path, cluster_name, key_path, cluster_address=None,
-            is_secure=True, verify_ssl=True, port=None, delete_after=False
+            is_secure=True, verify_ssl=True, port=None, delete_after=False,
+            timeout=sxclient.controller.DEFAULT_REQUEST_TIMEOUT
     ):
         cluster = sxclient.Cluster(
             cluster_name, cluster_address, is_secure=is_secure,
             verify_ssl_cert=verify_ssl, port=port
         )
         user_data = sxclient.UserData.from_key_path(key_path)
-        self.sx = sxclient.SXController(cluster, user_data)
+        self.sx = sxclient.SXController(
+            cluster, user_data, request_timeout=timeout
+        )
         remote_path = remote_path.decode('utf-8')
         self.volume, self.filename = self.split_remote_path(remote_path)
         self.delete_after = delete_after
@@ -150,7 +153,7 @@ def main():
         UploadLatency(
             args.remote_path, args.hostname, args.key_path, args.ip_addresses,
             args.is_secure, args.verify, args.port,
-            delete_after=args.delete_after
+            delete_after=args.delete_after, timeout=args.timeout
         ),
         nagiosplugin.ScalarContext('latency', args.warning, args.critical),
         BooleanContext('file contents identical')
